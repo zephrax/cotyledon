@@ -1,0 +1,7 @@
+Cotyledon Framework
+
+core/ contains the framework
+stem/ contains the application
+stem/app is the application code (logic)
+stem/www is the public folder (document root)
+
