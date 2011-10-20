@@ -8,7 +8,7 @@ class Cotyledon {
 	
 	protected $event_dispatcher;
 	protected $error_handler;
-	protected $request_handler;
+	protected $router;
 	protected $config_manager;
 	public $session;
 	
@@ -22,7 +22,7 @@ class Cotyledon {
 		
 		$this->error_handler = ErrorHandler::getInstance();
 		$this->event_dispatcher = new EventDispatcher();
-		$this->request_handler = RequestHandler::getInstance();
+		$this->router = Router::getInstance();
 		$this->config_manager = ConfigManager::getInstance();
 		
 	}
@@ -54,9 +54,9 @@ class Cotyledon {
 		
 	}
 	
-	public function getRequestHandler() {
+	public function getRouter() {
 		
-		return $this->request_handler;
+		return $this->router;
 		
 	}
 	
@@ -84,6 +84,6 @@ class Cotyledon {
 
 
 	public function processRequest() {
-		$this->request_handler->dispatch();	
+		$this->router->dispatch();	
 	}	
 }

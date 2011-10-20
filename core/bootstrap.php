@@ -13,7 +13,7 @@ $_cotyledon = Core\Cotyledon::getInstance();
 $session = $_cotyledon->getSessionHandler();
 //$session->peticiones++; echo $session->peticiones; exit;
 
-$_cotyledon->getRequestHandler()->loadController();
+$_cotyledon->getRouter()->loadController();
 
 $_cotyledon->setupDBConnection();
 

@@ -36,7 +36,7 @@ class ConfigManager {
 	public function getDomainConfig( $domain = false ) {
 	
 		if (!$domain)
-			$domain = Cotyledon::getInstance()->getRequestHandler()->getRequest()->domain;
+			$domain = Cotyledon::getInstance()->getRouter()->getRequest()->domain;
 		
 		if (!isset($this->_config['domains'][$domain]))
 			throw new CoreException( sprintf ( 'Configuration for domain \'%s\' not found.', $domain ) );
