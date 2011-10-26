@@ -16,6 +16,9 @@ $config['domains'] = array (
 		),
 		'core_leaves' => array (
 			'components' => array ( 'all' )
+		),
+		'routes' => array (
+			'' => array('Main', '')
 		)
 	),
 	

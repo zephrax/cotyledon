@@ -17,6 +17,7 @@ class Request {
 		$this->port = $_SERVER['SERVER_PORT'];
 		$this->request_method = $_SERVER['REQUEST_METHOD'];
 		$this->request_uri = $_SERVER['REQUEST_URI'];
+		$this->method = $_SERVER['REQUEST_METHOD'];
 		
 		$data = isset($_GET['q']) ? $_GET['q'] : '';
 		$data = explode('/', $data);

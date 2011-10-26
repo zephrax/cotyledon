@@ -1,4 +1,7 @@
 <?php
+/**
+ * Cotyledon: PHP Framework
+ */
 
 namespace Core;
 
@@ -8,8 +11,11 @@ class Cotyledon {
 	
 	protected $event_dispatcher;
 	protected $error_handler;
-	protected $router;
 	protected $config_manager;
+	protected $request;
+	protected $router;
+	protected $response;
+	
 	public $session;
 	
 	/**
@@ -22,8 +28,30 @@ class Cotyledon {
 		
 		$this->error_handler = ErrorHandler::getInstance();
 		$this->event_dispatcher = new EventDispatcher();
-		$this->router = Router::getInstance();
+		$this->request = new Request();
+		$this->router = new Router($this->request);
 		$this->config_manager = ConfigManager::getInstance();
+		$this->response = new Response();
+		
+	}
+	
+	public function init() {
+	
+		$result = $this->router->route($this->request);
+		
+        if ($result !== false) {
+        	print_r($result);
+            list($callback, $params) = $result;
+            
+            $this->execute($callback, array_values($params));
+        } else {
+            $this->notFound();
+        }
+	}
+	
+	public function notFound() {
+		die('Not found');
+		//$this->response->status('404');
 		
 	}
 	
@@ -49,7 +77,7 @@ class Cotyledon {
 	}
 	
 	public function getErrorHandler() {
-	
+		
 		return $this->error_handler;
 		
 	}
@@ -58,6 +86,12 @@ class Cotyledon {
 		
 		return $this->router;
 		
+	}
+	
+	public function getResponse() {
+	
+		return $this->response;
+	
 	}
 	
 	public function getConfigManager() {
@@ -85,5 +119,73 @@ class Cotyledon {
 
 	public function processRequest() {
 		$this->router->dispatch();	
-	}	
+	}
+	
+    /**
+     * Executes a callback function.
+     *
+     * @param callback $callback Callback function
+     * @param array $params Function parameters
+     * @return mixed Function results
+     */
+    public function execute($callback, array &$params = array()) {
+        if (is_callable($callback)) {
+            return is_array($callback) ?
+                $this->invokeMethod($callback, $params) :
+                $this->callFunction($callback, $params);
+        }
+    }
+    
+	/**
+     * Calls a function.
+     *
+     * @param string $func Name of function to call
+     * @param array $params Function parameters 
+     */
+    public function callFunction($func, array &$params = array()) {
+        switch (count($params)) {
+            case 0:
+                return $func();
+            case 1:
+                return $func($params[0]);
+            case 2:
+                return $func($params[0], $params[1]);
+            case 3:
+                return $func($params[0], $params[1], $params[2]);
+            case 4:
+                return $func($params[0], $params[1], $params[2], $params[3]);
+            case 5:
+                return $func($params[0], $params[1], $params[2], $params[3], $params[4]);
+            default:
+                return call_user_func_array($func, $params);
+        }
+    }
+
+    /**
+     * Invokes a method.
+     *
+     * @param mixed $func Class method
+     * @param array $params Class method parameters
+     */
+    public function invokeMethod($func, array &$params = array()) {
+        list($class, $method) = $func;
+
+        switch (count($params)) {
+            case 0:
+                return $class::$method();
+            case 1:
+                return $class::$method($params[0]);
+            case 2:
+                return $class::$method($params[0], $params[1]);
+            case 3:
+                return $class::$method($params[0], $params[1], $params[2]);
+            case 4:
+                return $class::$method($params[0], $params[1], $params[2], $params[3]);
+            case 5:
+                return $class::$method($params[0], $params[1], $params[2], $params[3], $params[4]);
+            default:
+                return call_user_func_array($func, $params);
+        }
+    }
+    
 }

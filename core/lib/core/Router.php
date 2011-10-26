@@ -4,24 +4,12 @@ namespace Core;
 
 class Router {
 
-	protected static $instance;
+	protected $routes = array();
 	private $controller;
 	private $request;
 
-	public function __construct() {
-	
-		$this->request = new Request();
-	
-	}
-	
-	public static function getInstance() {
-	
-		if (!self::$instance) {
-			self::$instance = new self();
-		}
-                
-		return self::$instance;
-		
+	public function __construct(&$request) {
+		$this->request = $request;
 	}
 	
 	public function getRequest() {
@@ -29,41 +17,101 @@ class Router {
 		return $this->request;
 		
 	}
-	
-	public function getController() {
-	
-		return $this->controller;
-	
-	}
-	
-	public function loadController() {
-	
-		$controller = new \App\Main\Controller( $this->request );
 		
-		if ($controller instanceof \App\Main\Controller) {
-			
-			$this->controller = $controller;
-                        
-			$this->controller->configure();
-			
-		} else {
-			
-			throw new CoreException ( 'Main module doesn\'t seems to be a Cotyledon controller.' );
-			
-		}
-		
-	}
+    /**
+     * Maps a URL pattern to a callback function.
+     *
+     * @param string $pattern URL pattern to match
+     * @param callback $callback Callback function
+     */
+    public function map($pattern, $callback) {
+        list($method, $url) = explode(' ', trim($pattern), 2);
+        
+        if (!is_null($url)) {
+            foreach (explode('|', $method) as $value) {
+				$this->routes[$value][$url] = $callback;
+            }
+        }
+        else {
+            $this->routes['*'][$pattern] = $callback;
+        }
+    }
 	
-	public function dispatch() {
-	
-		$event = new Event( $this, 'core.before_dispatch', array ( ) );
-		Cotyledon::getInstance()->getEventDispatcher()->notify( $event );
+    /**
+     * Tries to match a requst to a route. Also parses named parameters in the url.
+     *
+     * @param string $pattern URL pattern
+     * @param string $url Request URL
+     * @param array $params Named URL parameters
+     */
+    public function match($pattern, $url, array &$params = array()) {
+        $ids = array();
 
-		$this->controller->process();
+        $regex = '/^'.implode('\/', array_map(
+            function($str) use (&$ids){
+                if ($str == '*') {
+                    $str = '(.*)';
+                } else if ($str{0} == '@') {
+                    if (preg_match('/@(\w+)(\:([^\/]*))?/', $str, $matches)) {
+                        $ids[$matches[1]] = true;
+                        return '(?P<'.$matches[1].'>'.(isset($matches[3]) ? $matches[3] : '[^(\/|\?)]+').')';
+                    }
+                }
+                return $str; 
+            },
+            explode('/', $pattern)
+        )).'\/?(?:\?.*)?$/i';
+
+        if (preg_match($regex, $url, $matches)) {
+            if (!empty($ids)) {
+                $params = array_intersect_key($matches, $ids);
+            }
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * Routes the current request.
+     *
+     * @param object $request Request object
+     */
+    public function route(&$request) {
+        $params = array();
+        $routes = (isset($this->routes[$request->method]) ?: array()) + (isset($this->routes['*']) ? : array());
 		
-		$event = new Event( $this, 'core.after_dispatch', array ( ) );
-		Cotyledon::getInstance()->getEventDispatcher()->notify( $event );
-		
-	}
+		if (!empty($routes)) {
+	        foreach ($routes as $pattern => $callback) {
+	            if ($pattern === '*' || $request->url === $pattern || self::match($pattern, $request->url, $params)) {
+	                $request->matched = $pattern;
+	                return array($callback, $params);
+	            }
+	        }
+		} else {
+			$params = array();
+			return array('\\App\\' . ( isset($request->data[0]) ? $request->data[0] : 'Main' )  .
+							'\\' . ( isset($request->data[1]) ? $request->data[1] : 'Default' ) .
+								( isset($request->data[2]) ? $request->data[2] : 'process' ), $params );
+		}
+
+        return false;
+    }
+
+    /**
+     * Gets mapped routes.
+     *
+     * @return array Array of routes
+     */
+    public function getRoutes() {
+        return $this->routes;
+    }
+
+    /**
+     * Resets the router.
+     */
+    public function clear() {
+        $this->routes = array();
+    }
 
 }

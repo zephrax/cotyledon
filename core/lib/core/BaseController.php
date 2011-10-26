@@ -12,8 +12,6 @@ abstract class BaseController {
 		
 		$this->request = $request;
 		
-		echo get_class($this);
-		
 		$this->tpl = new \UI\Template();
 		
 	}

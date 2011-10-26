@@ -10,14 +10,9 @@ require_once( CORE_PATH . '/functions/autoload.inc.php' );
 
 $_cotyledon = Core\Cotyledon::getInstance();
 
-$session = $_cotyledon->getSessionHandler();
-//$session->peticiones++; echo $session->peticiones; exit;
-
-$_cotyledon->getRouter()->loadController();
-
-$_cotyledon->setupDBConnection();
+$_cotyledon->init();
 
 //$_cotyledon->registerCoreEvents();
 
-$_cotyledon->processRequest();
+//$_cotyledon->processRequest();
 
