@@ -121,12 +121,12 @@ class Router {
      */
     private function getDefaultRouteFile() {
 	$base_dir = APP_PATH . '/modules/';
-	$base_class = '\\App';
+	$base_class = 'App';
 	$params = array();
 	$method = '';
 	
 	if (!isset($this->request->data[0]))
-		return array(array('\\App\\Main', 'process'), $params);
+		return array(array('App\\Main', 'process'), $params);
 	
 	foreach ($this->request->data as $index => $part) {
 	    if (file_exists($base_dir . $part) && is_dir($base_dir . $part)) {

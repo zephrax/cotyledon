@@ -111,7 +111,6 @@ class Cotyledon {
 	$routes = $this->config_manager->get('routes');
 	if (!empty($routes)) {
 	    foreach ($routes as $regexp => $callback) {
-		if (is_callable($callback))
 		    $this->router->map($regexp, $callback);
 	    }
 	}
