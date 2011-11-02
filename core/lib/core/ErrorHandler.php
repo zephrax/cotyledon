@@ -24,11 +24,11 @@ class ErrorHandler {
 	}
 
 	public function handleShutdown () {
-        $error = error_get_last();
+            $error = error_get_last();
         
-        if($error !== NULL){
-            $info = "[SHUTDOWN] file: " . $error['file'] . " | ln: " . $error['line']." | msg:" . $error['message'] . PHP_EOL;
-            echo $info;
-		}
+            if($error !== NULL){
+                $info = "[SHUTDOWN] file: " . $error['file'] . " | ln: " . $error['line']." | msg:" . $error['message'] . PHP_EOL;
+                echo $info;
+            }
 	}
 }
