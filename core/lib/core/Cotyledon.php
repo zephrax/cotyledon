@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Cotyledon: PHP Framework
  */
@@ -6,121 +7,119 @@
 namespace Core;
 
 class Cotyledon {
-	
-	protected static $instance;
-	
-	protected $event_dispatcher;
-	protected $error_handler;
-	protected $config_manager;
-	protected $request;
-	protected $router;
-	protected $response;
-	
-	public $session;
-	
-	/**
-	 * Constructor
-	 * Initializes everything we need
-	 */
-	public function __construct() {
-		
-		set_exception_handler( array('Core\ExceptionHandler', 'process') );
-		
-		$this->error_handler = ErrorHandler::getInstance();
-		$this->event_dispatcher = new EventDispatcher();
-		$this->request = new Request();
-		$this->router = new Router($this->request);
-		$this->config_manager = ConfigManager::getInstance();
-		$this->response = new Response();
-		
-	}
-	
-	public function init() {
-	
-		$result = $this->router->route($this->request);
-		
+
+    protected static $instance;
+    protected $event_dispatcher;
+    protected $error_handler;
+    protected $config_manager;
+    protected $request;
+    protected $router;
+    protected $response;
+    public $session;
+
+    /**
+     * Constructor
+     * Initializes everything we need
+     */
+    public function __construct() {
+
+        set_exception_handler(array('Core\ExceptionHandler', 'process'));
+
+        $this->error_handler = ErrorHandler::getInstance();
+        $this->event_dispatcher = new EventDispatcher();
+        $this->request = new Request();
+        $this->router = new Router($this->request);
+        $this->config_manager = ConfigManager::getInstance();
+        $this->response = new Response();
+    }
+
+    public function init() {
+
+        $result = $this->router->route($this->request);
+
         if ($result !== false) {
-        	print_r($result);
-            list($callback, $params) = $result;
+            print_r($result);
+            echo APP_PATH . '/modules/' . ( isset($this->request->data[0]) ? ucwords($this->request->data[0]) : 'Main' ) .
+                '/' . ( isset($this->request->data[1]) ? ucwords($this->request->data[1]) : 'Default' ) . '.php';
             
-            $this->execute($callback, array_values($params));
+            if (file_exists(APP_PATH . '/modules/' . ( isset($this->request->data[0]) ? ucwords($this->request->data[0]) : 'Main' ) .
+                '/' . ( isset($this->request->data[1]) ? ucwords($this->request->data[1]) : 'Default' ) . '.php' )) {
+                
+                list($callback, $params) = $result;
+                
+                $theparams = array_values($params);
+                $this->execute($callback, $theparams);
+                
+            } else {
+                $this->notFound();
+            }
         } else {
             $this->notFound();
         }
-	}
-	
-	public function notFound() {
-		die('Not found');
-		//$this->response->status('404');
-		
-	}
-	
-	public static function getInstance() {
-	
-		if (!self::$instance instanceof self)
-			self::$instance = new self;
-		
-		return self::$instance;
-		
-	}
-	
-	public static function bindEvent( $event_name, $callback ) {
-	
-		self::getInstance()->event_dispatcher->connect( $event_name, $callback );
-		
-	}
-	
-	public function getEventDispatcher() {
-	
-		return $this->event_dispatcher;
-		
-	}
-	
-	public function getErrorHandler() {
-		
-		return $this->error_handler;
-		
-	}
-	
-	public function getRouter() {
-		
-		return $this->router;
-		
-	}
-	
-	public function getResponse() {
-	
-		return $this->response;
-	
-	}
-	
-	public function getConfigManager() {
-	
-		return ConfigManager::getInstance();
-		
-	}
-	
-	public function setupDBConnection() {
-	
-		$cfg = $this->config_manager->getDomainConfig();
-		
-		if ( $cfg['use_db'] ) {
-			\DB\ORM::configure( $cfg['db']['type'] . ':host='.$cfg['db']['server'].';dbname=' . $cfg['db']['database'] );
-			\DB\ORM::configure( 'username', $cfg['db']['username'] );
-			\DB\ORM::configure( 'password', $cfg['db']['password'] );
-		}
-		
-	}
-	
-	public function getSessionHandler() {
-		return Session::getInstance();
-	}
+    }
 
+    public function notFound() {
+        die('Not found');
+        //$this->response->status('404');
+    }
 
-	public function processRequest() {
-		$this->router->dispatch();	
-	}
-	
+    public static function getInstance() {
+
+        if (!self::$instance instanceof self)
+            self::$instance = new self;
+
+        return self::$instance;
+    }
+
+    public static function bindEvent($event_name, $callback) {
+
+        self::getInstance()->event_dispatcher->connect($event_name, $callback);
+    }
+
+    public function getEventDispatcher() {
+
+        return $this->event_dispatcher;
+    }
+
+    public function getErrorHandler() {
+
+        return $this->error_handler;
+    }
+
+    public function getRouter() {
+
+        return $this->router;
+    }
+
+    public function getResponse() {
+
+        return $this->response;
+    }
+
+    public function getConfigManager() {
+
+        return ConfigManager::getInstance();
+    }
+
+    public function setupDBConnection() {
+
+        $cfg = $this->config_manager->getDomainConfig();
+
+        if ($cfg['use_db']) {
+            \DB\ORM::configure($cfg['db']['type'] . ':host=' . $cfg['db']['server'] . ';dbname=' . $cfg['db']['database']);
+            \DB\ORM::configure('username', $cfg['db']['username']);
+            \DB\ORM::configure('password', $cfg['db']['password']);
+        }
+    }
+
+    public function getSessionHandler() {
+        return Session::getInstance();
+    }
+
+    public function processRequest() {
+        $this->router->dispatch();
+    }
+
     /**
      * Executes a callback function.
      *
@@ -129,14 +128,15 @@ class Cotyledon {
      * @return mixed Function results
      */
     public function execute($callback, array &$params = array()) {
+        
         if (is_callable($callback)) {
             return is_array($callback) ?
-                $this->invokeMethod($callback, $params) :
-                $this->callFunction($callback, $params);
+                    $this->invokeMethod($callback, $params) :
+                    $this->callFunction($callback, $params);
         }
     }
-    
-	/**
+
+    /**
      * Calls a function.
      *
      * @param string $func Name of function to call
@@ -187,5 +187,5 @@ class Cotyledon {
                 return call_user_func_array($func, $params);
         }
     }
-    
+
 }
