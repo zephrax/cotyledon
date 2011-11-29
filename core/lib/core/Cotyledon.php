@@ -32,37 +32,28 @@ class Cotyledon {
         $this->config_manager = ConfigManager::getInstance();
         $this->response = new Response();
     }
-
+    
     public function init() {
-
+        
         $result = $this->router->route($this->request);
-
+        print_r($result);
         if ($result !== false) {
-            print_r($result);
-            echo APP_PATH . '/modules/' . ( isset($this->request->data[0]) ? ucwords($this->request->data[0]) : 'Main' ) .
-                '/' . ( isset($this->request->data[1]) ? ucwords($this->request->data[1]) : 'Default' ) . '.php';
-            
-            if (file_exists(APP_PATH . '/modules/' . ( isset($this->request->data[0]) ? ucwords($this->request->data[0]) : 'Main' ) .
-                '/' . ( isset($this->request->data[1]) ? ucwords($this->request->data[1]) : 'Default' ) . '.php' )) {
                 
-                list($callback, $params) = $result;
+//                list($callback, $params) = $result;
+//                
+//                $theparams = array_values($params);
+//                $this->execute($callback, $theparams);
                 
-                $theparams = array_values($params);
-                $this->execute($callback, $theparams);
-                
-            } else {
-                $this->notFound();
-            }
         } else {
             $this->notFound();
         }
     }
-
+    
     public function notFound() {
         die('Not found');
         //$this->response->status('404');
     }
-
+    
     public static function getInstance() {
 
         if (!self::$instance instanceof self)

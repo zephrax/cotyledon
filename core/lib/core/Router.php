@@ -9,12 +9,12 @@ class Router {
     private $request;
 
     public function __construct(&$request) {
-        $this->request = $request;
+	$this->request = $request;
     }
 
     public function getRequest() {
 
-        return $this->request;
+	return $this->request;
     }
 
     /**
@@ -24,15 +24,15 @@ class Router {
      * @param callback $callback Callback function
      */
     public function map($pattern, $callback) {
-        list($method, $url) = explode(' ', trim($pattern), 2);
+	list($method, $url) = explode(' ', trim($pattern), 2);
 
-        if (!is_null($url)) {
-            foreach (explode('|', $method) as $value) {
-                $this->routes[$value][$url] = $callback;
-            }
-        } else {
-            $this->routes['*'][$pattern] = $callback;
-        }
+	if (!is_null($url)) {
+	    foreach (explode('|', $method) as $value) {
+		$this->routes[$value][$url] = $callback;
+	    }
+	} else {
+	    $this->routes['*'][$pattern] = $callback;
+	}
     }
 
     /**
@@ -43,30 +43,30 @@ class Router {
      * @param array $params Named URL parameters
      */
     public function match($pattern, $url, array &$params = array()) {
-        $ids = array();
+	$ids = array();
 
-        $regex = '/^' . implode('\/', array_map(
-                                function($str) use (&$ids) {
-                                    if ($str == '*') {
-                                        $str = '(.*)';
-                                    } else if ($str{0} == '@') {
-                                        if (preg_match('/@(\w+)(\:([^\/]*))?/', $str, $matches)) {
-                                            $ids[$matches[1]] = true;
-                                            return '(?P<' . $matches[1] . '>' . (isset($matches[3]) ? $matches[3] : '[^(\/|\?)]+') . ')';
-                                        }
-                                    }
-                                    return $str;
-                                }, explode('/', $pattern)
-                        )) . '\/?(?:\?.*)?$/i';
+	$regex = '/^' . implode('\/', array_map(
+				function($str) use (&$ids) {
+				    if ($str == '*') {
+					$str = '(.*)';
+				    } else if ($str{0} == '@') {
+					if (preg_match('/@(\w+)(\:([^\/]*))?/', $str, $matches)) {
+					    $ids[$matches[1]] = true;
+					    return '(?P<' . $matches[1] . '>' . (isset($matches[3]) ? $matches[3] : '[^(\/|\?)]+') . ')';
+					}
+				    }
+				    return $str;
+				}, explode('/', $pattern)
+			)) . '\/?(?:\?.*)?$/i';
 
-        if (preg_match($regex, $url, $matches)) {
-            if (!empty($ids)) {
-                $params = array_intersect_key($matches, $ids);
-            }
-            return true;
-        }
+	if (preg_match($regex, $url, $matches)) {
+	    if (!empty($ids)) {
+		$params = array_intersect_key($matches, $ids);
+	    }
+	    return true;
+	}
 
-        return false;
+	return false;
     }
 
     /**
@@ -75,24 +75,88 @@ class Router {
      * @param object $request Request object
      */
     public function route(&$request) {
-        $params = array();
-        $routes = (isset($this->routes[$request->method]) ? : array()) + (isset($this->routes['*']) ? : array());
+	$none_match = false;
+	$params = array();
+	$routes = (isset($this->routes[$request->method]) ? : array()) + (isset($this->routes['*']) ? : array());
 
-        if (!empty($routes)) {
-            foreach ($routes as $pattern => $callback) {
-                if ($pattern === '*' || $request->url === $pattern || self::match($pattern, $request->url, $params)) {
-                    $request->matched = $pattern;
-                    return array($callback, $params);
-                }
-            }
-        } else {
-            $params = array();
-            return array( array ( '\\App\\' . ( isset($request->data[0]) ? $request->data[0] : 'Main' ) .
-                '\\' . ( isset($request->data[1]) ? $request->data[1] : 'Default' ), 
-                ( isset($request->data[2]) ? $request->data[2] : 'process' ) ), $params);
-        }
+	if (!empty($routes)) {
+	    foreach ($routes as $pattern => $callback) {
+		if ($pattern === '*' || $request->url === $pattern || self::match($pattern, $request->url, $params)) {
+		    $request->matched = $pattern;
+		    return array($callback, $params);
+		}
+	    }
 
-        return false;
+	    $none_match = true;
+	}
+
+	if (empty($routes) || $none_match) {
+	    return $this->getDefaultRouteFile();
+	}
+
+	return false;
+    }
+
+    private function getDefaultRouteFile() {
+	$params = array();
+
+	if (isset($this->request->data[0])) {
+	    $current_try = APP_PATH . '/modules/' . ucwords($this->request->data[0]);
+
+	    if (file_exists($current_try)) { // check dir
+		if (is_dir($current_try)) {
+		    if (isset($this->request->data[1])) {
+			$current_try .= '/' . ucwords($this->request->data[1]) . '.php';
+			if (file_exists($current_try)) {
+			    return array(array('\\App\\' . $this->request->data[0] .
+				    '\\' . $this->request->data[1],
+				    ( isset($this->request->data[2]) ? $this->request->data[2] : 'process' )), $params);
+			} else {
+			    $current_try = APP_PATH . '/modules/' . ucwords($this->request->data[0]) . '/Main.php';
+			    if (file_exists($current_try)) {
+				return array(array('\\App\\' . $this->request->data[0] . '\\Main',
+					( isset($this->request->data[1]) ? $this->request->data[1] : 'process' )), $params);
+			    } else {
+				throw new \Core\CoreException('Controller not found: "' . $current_try . '"', \Core\CoreException::CONTROLLER_NOT_FOUND);
+			    }
+			}
+		    } else {
+			$current_try .= '/Main.php';
+			
+			if (file_exists($current_try)) {
+			    return array(array('\\App\\' . $this->request->data[0] . '\\Main',
+				    ( isset($this->request->data[1]) ? $this->request->data[1] : 'process' )), $params);
+			} else {
+			    throw new \Core\CoreException('Controller not found: "' . $current_try . '"', \Core\CoreException::CONTROLLER_NOT_FOUND);
+			}
+		    }
+		}
+	    } else { // dir not found => check file
+		$current_try .= '.php';
+
+		if (file_exists($current_try)) {
+		    return array(array('\\App\\' . $this->request->data[0],
+			    ( isset($this->request->data[1]) ? $this->request->data[1] : 'process' )), $params);
+		} else {
+		    $current_try = APP_PATH . '/modules/Main.php';
+		    
+		    if (file_exists($current_try)) {
+			return array(array('\\App\\Main',
+				( isset($this->request->data[0]) ? $this->request->data[0] : 'process' )), $params);
+		    } else {
+			throw new \Core\CoreException('Controller not found: "' . $current_try . '"', \Core\CoreException::CONTROLLER_NOT_FOUND);
+		    }
+		}
+	    }
+	} else { // Default
+	    $current_try = APP_PATH . '/modules/Main.php';
+	    
+	    if (file_exists($current_try)) {
+		return array(array('\\App\\Main', 'process'), $params);
+	    } else {
+		throw new \Core\CoreException('Controller not found: "' . $current_try . '"', \Core\CoreException::CONTROLLER_NOT_FOUND);
+	    }
+	}
     }
 
     /**
@@ -101,14 +165,14 @@ class Router {
      * @return array Array of routes
      */
     public function getRoutes() {
-        return $this->routes;
+	return $this->routes;
     }
 
     /**
      * Resets the router.
      */
     public function clear() {
-        $this->routes = array();
+	$this->routes = array();
     }
 
 }
