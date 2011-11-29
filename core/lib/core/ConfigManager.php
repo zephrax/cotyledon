@@ -1,4 +1,10 @@
 <?php
+/**
+ * Cotyledon Config Manager
+ *	for loading configuration
+ * 
+ * @author Jonatan Bravo <zephrax@gmail.com>
+ */
 
 namespace Core;
 

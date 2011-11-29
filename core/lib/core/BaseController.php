@@ -1,4 +1,10 @@
 <?php
+/**
+ * Cotyledon Base Controller Class
+ * Mostly of the app controllers should extend from this class
+ * 
+ * @author Jonatan Bravo <zephrax@gmail.com>
+ */
 
 namespace Core;
 

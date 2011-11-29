@@ -1,4 +1,11 @@
 <?php
+/**
+ * Cotyledon Router
+ * 
+ * Some code was taken from Flight PHP MicroFramework (http://flightphp.com/)
+ * 
+ * @author Jonatan Bravo <zephrax@gmail.com>
+ */
 
 namespace Core;
 
@@ -91,17 +98,32 @@ class Router {
 	}
 
 	if (empty($routes) || $none_match) {
-	    return $this->getDefaultRouteFile();
+	    try {
+		$result = $this->getDefaultRouteFile();
+	    } catch (\Core\CoreException $e) {
+		switch ($e->getCode()) {
+		    case \Core\CoreException::CONTROLLER_NOT_FOUND:
+			return false;
+			break;
+		}
+	    }
 	}
 
-	return false;
+	return $result;
     }
     
+    /**
+     * Get Controller Class and method for the current request url
+     * @return mixed
+     */
     private function getDefaultRouteFile() {
 	$base_dir = APP_PATH . '/modules/';
 	$base_class = '\\App';
 	$params = array();
 	$method = '';
+	
+	if (!isset($this->request->data[0]))
+		return array(array('\\App\\Main', 'process'), $params);
 	
 	foreach ($this->request->data as $index => $part) {
 	    if (file_exists($base_dir . $part) && is_dir($base_dir . $part)) {
@@ -187,7 +209,7 @@ class Router {
 	    }
 	} else { // Default
 	    $current_try = APP_PATH . '/modules/Main.php';
-
+	    
 	    if (file_exists($current_try)) {
 		return array(array('\\App\\Main', 'process'), $params);
 	    } else {
