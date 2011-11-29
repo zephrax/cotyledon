@@ -96,8 +96,45 @@ class Router {
 
 	return false;
     }
-
+    
     private function getDefaultRouteFile() {
+	$base_dir = APP_PATH . '/modules/';
+	$base_class = '\\App';
+	$params = array();
+	$method = '';
+	
+	foreach ($this->request->data as $index => $part) {
+	    if (file_exists($base_dir . $part) && is_dir($base_dir . $part)) {
+		$base_dir .= ucwords($part) . '/';
+		$base_class .= '\\' . ucwords($part);
+	    } else {
+		if (file_exists($base_dir . ucwords($part) . '.php')) {
+		    $base_class .= '\\' . ucwords($part);
+		    $method = isset($this->request->data[$index + 1]) ? $this->request->data[$index + 1] : 'process';
+		    $index++;
+		} else {
+		    if (file_exists($base_dir . 'Main.php')) {
+			$base_class .= '\\Main';
+			$method = $part;
+		    } else {
+			throw new \Core\CoreException('Controller not found', \Core\CoreException::CONTROLLER_NOT_FOUND);
+		    }
+		}
+	    }
+	    
+	    if ($method) {
+		$params = array_slice($this->request->data, ++$index);
+		break;
+	    }
+	}
+	
+	return array (array($base_class, $method), $params);
+    }
+    
+    /**
+     * DEPRECATED
+     */
+    private function getDefRouteFile() {
 	$params = array();
 
 	if (isset($this->request->data[0])) {
@@ -122,7 +159,7 @@ class Router {
 			}
 		    } else {
 			$current_try .= '/Main.php';
-			
+
 			if (file_exists($current_try)) {
 			    return array(array('\\App\\' . $this->request->data[0] . '\\Main',
 				    ( isset($this->request->data[1]) ? $this->request->data[1] : 'process' )), $params);
@@ -139,7 +176,7 @@ class Router {
 			    ( isset($this->request->data[1]) ? $this->request->data[1] : 'process' )), $params);
 		} else {
 		    $current_try = APP_PATH . '/modules/Main.php';
-		    
+
 		    if (file_exists($current_try)) {
 			return array(array('\\App\\Main',
 				( isset($this->request->data[0]) ? $this->request->data[0] : 'process' )), $params);
@@ -150,7 +187,7 @@ class Router {
 	    }
 	} else { // Default
 	    $current_try = APP_PATH . '/modules/Main.php';
-	    
+
 	    if (file_exists($current_try)) {
 		return array(array('\\App\\Main', 'process'), $params);
 	    } else {
