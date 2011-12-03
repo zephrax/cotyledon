@@ -18,7 +18,7 @@ $config['domains'] = array (
 			'components' => array ( 'all' )
 		),
 		'routes' => array (
-			'' => array('Main', '')
+			'/custom_route' => array('\\App\\Main', 'customRoute')
 		)
 	),
 	

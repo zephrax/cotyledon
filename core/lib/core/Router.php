@@ -10,28 +10,33 @@
 namespace Core;
 
 class Router {
-
+    
     protected $routes = array();
     private $controller;
     private $request;
-
-    public function __construct(&$request) {
-	$this->request = $request;
-    }
-
-    public function getRequest() {
-
-	return $this->request;
+    
+    /**
+     * Router Constructor
+     * @param \Core\Request $request Object with the request data
+     */
+    public function __construct(&$request = false) {
+	if ($request)
+	    $this->request = $request;
     }
 
     /**
      * Maps a URL pattern to a callback function.
-     *
      * @param string $pattern URL pattern to match
      * @param callback $callback Callback function
      */
     public function map($pattern, $callback) {
-	list($method, $url) = explode(' ', trim($pattern), 2);
+	$parts = explode(' ', trim($pattern), 2);
+	if (count($parts) == 1)
+	    $url = null;
+	else {
+	    $method = $parts[0];
+	    $url = $parts[1];
+	}
 
 	if (!is_null($url)) {
 	    foreach (explode('|', $method) as $value) {
@@ -44,7 +49,6 @@ class Router {
 
     /**
      * Tries to match a requst to a route. Also parses named parameters in the url.
-     *
      * @param string $pattern URL pattern
      * @param string $url Request URL
      * @param array $params Named URL parameters
@@ -56,7 +60,7 @@ class Router {
 				function($str) use (&$ids) {
 				    if ($str == '*') {
 					$str = '(.*)';
-				    } else if ($str{0} == '@') {
+				    } else if (isset($str{0}) && $str{0} == '@') {
 					if (preg_match('/@(\w+)(\:([^\/]*))?/', $str, $matches)) {
 					    $ids[$matches[1]] = true;
 					    return '(?P<' . $matches[1] . '>' . (isset($matches[3]) ? $matches[3] : '[^(\/|\?)]+') . ')';
@@ -65,7 +69,7 @@ class Router {
 				    return $str;
 				}, explode('/', $pattern)
 			)) . '\/?(?:\?.*)?$/i';
-
+	
 	if (preg_match($regex, $url, $matches)) {
 	    if (!empty($ids)) {
 		$params = array_intersect_key($matches, $ids);
@@ -78,13 +82,12 @@ class Router {
 
     /**
      * Routes the current request.
-     *
      * @param object $request Request object
      */
-    public function route(&$request) {
+    public function route(\Core\Request &$request) {
 	$none_match = false;
 	$params = array();
-	$routes = (isset($this->routes[$request->method]) ? : array()) + (isset($this->routes['*']) ? : array());
+	$routes = (isset($this->routes[$request->method]) ? $this->routes[$request->method] : array()) + (isset($this->routes['*']) ? $this->routes['*'] : array());
 
 	if (!empty($routes)) {
 	    foreach ($routes as $pattern => $callback) {
@@ -154,73 +157,7 @@ class Router {
     }
     
     /**
-     * DEPRECATED
-     */
-    private function getDefRouteFile() {
-	$params = array();
-
-	if (isset($this->request->data[0])) {
-	    $current_try = APP_PATH . '/modules/' . ucwords($this->request->data[0]);
-
-	    if (file_exists($current_try)) { // check dir
-		if (is_dir($current_try)) {
-		    if (isset($this->request->data[1])) {
-			$current_try .= '/' . ucwords($this->request->data[1]) . '.php';
-			if (file_exists($current_try)) {
-			    return array(array('\\App\\' . $this->request->data[0] .
-				    '\\' . $this->request->data[1],
-				    ( isset($this->request->data[2]) ? $this->request->data[2] : 'process' )), $params);
-			} else {
-			    $current_try = APP_PATH . '/modules/' . ucwords($this->request->data[0]) . '/Main.php';
-			    if (file_exists($current_try)) {
-				return array(array('\\App\\' . $this->request->data[0] . '\\Main',
-					( isset($this->request->data[1]) ? $this->request->data[1] : 'process' )), $params);
-			    } else {
-				throw new \Core\CoreException('Controller not found: "' . $current_try . '"', \Core\CoreException::CONTROLLER_NOT_FOUND);
-			    }
-			}
-		    } else {
-			$current_try .= '/Main.php';
-
-			if (file_exists($current_try)) {
-			    return array(array('\\App\\' . $this->request->data[0] . '\\Main',
-				    ( isset($this->request->data[1]) ? $this->request->data[1] : 'process' )), $params);
-			} else {
-			    throw new \Core\CoreException('Controller not found: "' . $current_try . '"', \Core\CoreException::CONTROLLER_NOT_FOUND);
-			}
-		    }
-		}
-	    } else { // dir not found => check file
-		$current_try .= '.php';
-
-		if (file_exists($current_try)) {
-		    return array(array('\\App\\' . $this->request->data[0],
-			    ( isset($this->request->data[1]) ? $this->request->data[1] : 'process' )), $params);
-		} else {
-		    $current_try = APP_PATH . '/modules/Main.php';
-
-		    if (file_exists($current_try)) {
-			return array(array('\\App\\Main',
-				( isset($this->request->data[0]) ? $this->request->data[0] : 'process' )), $params);
-		    } else {
-			throw new \Core\CoreException('Controller not found: "' . $current_try . '"', \Core\CoreException::CONTROLLER_NOT_FOUND);
-		    }
-		}
-	    }
-	} else { // Default
-	    $current_try = APP_PATH . '/modules/Main.php';
-	    
-	    if (file_exists($current_try)) {
-		return array(array('\\App\\Main', 'process'), $params);
-	    } else {
-		throw new \Core\CoreException('Controller not found: "' . $current_try . '"', \Core\CoreException::CONTROLLER_NOT_FOUND);
-	    }
-	}
-    }
-
-    /**
      * Gets mapped routes.
-     *
      * @return array Array of routes
      */
     public function getRoutes() {
